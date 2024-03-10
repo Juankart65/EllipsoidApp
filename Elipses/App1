@@ -1,0 +1,131 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+
+class EllipsoidApp:
+    def __init__(self, master):
+        # Configuración de la interfaz gráfica
+        self.master = master
+        self.master.title("Graficador de Elipsoide")
+
+        # Etiquetas y campos de entrada para los semiejes y número de trazas
+        self.label_a = ttk.Label(master, text="Semieje (a):")
+        self.label_a.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        self.entry_a = ttk.Entry(master)
+        self.entry_a.grid(row=0, column=1, padx=10, pady=5)
+
+        self.label_b = ttk.Label(master, text="Semieje (b):")
+        self.label_b.grid(row=1, column=0, padx=10, pady=5, sticky=tk.W)
+        self.entry_b = ttk.Entry(master)
+        self.entry_b.grid(row=1, column=1, padx=10, pady=5)
+
+        self.label_c = ttk.Label(master, text="Semieje (c):")
+        self.label_c.grid(row=2, column=0, padx=10, pady=5, sticky=tk.W)
+        self.entry_c = ttk.Entry(master)
+        self.entry_c.grid(row=2, column=1, padx=10, pady=5)
+
+        self.label_traces = ttk.Label(master, text="Número de trazas:")
+        self.label_traces.grid(row=3, column=0, padx=10, pady=5, sticky=tk.W)
+        self.entry_traces = ttk.Entry(master)
+        self.entry_traces.grid(row=3, column=1, padx=10, pady=5)
+
+        # Casillas de verificación para seleccionar los planos XY, XZ, YZ
+        self.xy_checkbox_var = tk.IntVar()
+        self.xy_checkbox = ttk.Checkbutton(master, text="Mostrar XY", variable=self.xy_checkbox_var)
+        self.xy_checkbox.grid(row=4, column=0, padx=10, pady=5, sticky=tk.W)
+
+        self.xz_checkbox_var = tk.IntVar()
+        self.xz_checkbox = ttk.Checkbutton(master, text="Mostrar XZ", variable=self.xz_checkbox_var)
+        self.xz_checkbox.grid(row=5, column=0, padx=10, pady=5, sticky=tk.W)
+
+        self.yz_checkbox_var = tk.IntVar()
+        self.yz_checkbox = ttk.Checkbutton(master, text="Mostrar YZ", variable=self.yz_checkbox_var)
+        self.yz_checkbox.grid(row=6, column=0, padx=10, pady=5, sticky=tk.W)
+
+        # Botón para calcular y graficar
+        self.calculate_button = ttk.Button(master, text="Calcular y Graficar", command=self.calculate_and_plot)
+        self.calculate_button.grid(row=7, column=0, columnspan=2, pady=10)
+
+    def calculate_and_plot(self):
+        try:
+            # Obtener valores de los semiejes y el número de trazas
+            a = float(self.entry_a.get())
+            b = float(self.entry_b.get())
+            c = float(self.entry_c.get())
+            num_traces = int(self.entry_traces.get())
+
+            # Crear una figura y un subplot 3D
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+
+            # Parámetros para las trazas
+            u = np.linspace(0, 2 * np.pi, 40)
+            v = np.linspace(0, np.pi, 40)
+
+            # Intervalos para los planos XY, XZ, YZ
+            interval_xy = num_traces
+            interval_xz = num_traces
+            interval_yz = num_traces
+
+            for i in range(-num_traces, num_traces + 1):  # Iterar sobre ejes negativos y positivos
+                # Trazas en el plano XY
+                z_val = i * (c / num_traces)  # Ajustar la variación de Z
+                x_xy = np.sqrt((a**2) * (1 - ((((z_val**2))/(c**2)))) ) * np.outer(np.cos(u), np.sin(v + i * interval_xy * np.pi / num_traces))
+                y_xy = np.sqrt((b**2) * (1 - ((((z_val**2))/(c**2)))) ) * np.outer(np.sin(u), np.sin(v + i * interval_xy * np.pi / num_traces))
+                z_xy = z_val * np.ones_like(x_xy)
+
+                # Trazas en el plano XZ
+                y_val = i * (b / num_traces)  # Ajustar la variación de Y
+                x_xz = np.sqrt((a**2) * (1 - ((((y_val**2))/(b**2)))) ) * np.outer(np.cos(u), np.cos(v + i * interval_xz * np.pi / num_traces))
+                y_xz = y_val * np.ones_like(x_xz)
+                z_xz = np.sqrt((c**2) * (1 - ((((y_val**2))/(b**2)))) ) * np.outer(np.sin(u), np.cos(v + i * interval_xz * np.pi / num_traces))
+
+                # Trazas en el plano YZ
+                x_val = i * (a / num_traces)  # Ajustar la variación de X
+                x_yz = x_val * np.ones_like(x_xz)
+                y_yz = np.sqrt((b**2) * (1 - ((((x_val**2))/(a**2)))) ) * np.outer(np.sin(u + i * interval_yz * np.pi / num_traces), np.sin(v))
+                z_yz = np.sqrt((c**2) * (1 - ((((x_val**2))/(a**2)))) ) * np.outer(np.cos(u + i * interval_yz * np.pi / num_traces), np.sin(v))
+
+                # Verificar las casillas de verificación y graficar los planos seleccionados
+                if self.xy_checkbox_var.get():
+                    ax.plot_wireframe(x_xy, y_xy, z_xy, color='#E06304', linewidth=0.1)
+
+                if self.xz_checkbox_var.get():
+                    ax.plot_wireframe(x_xz, y_xz, z_xz, color='#4AE138', linewidth=0.1)
+
+                if self.yz_checkbox_var.get():
+                    ax.plot_wireframe(x_yz, y_yz, z_yz, color='#D97FE0', linewidth=0.1)
+
+                plt.pause(1)  # Pausa de 1 segundo entre trazas
+                plt.draw()
+
+            # Configurar título y etiquetas de ejes
+            ax.set_title("Graficador de Elipsoide")
+            ax.set_xlabel("Eje X")
+            ax.set_ylabel("Eje Y")
+            ax.set_zlabel("Eje Z")
+
+            # Cerrar la ventana después de cerrar la figura
+            plt.show()
+
+        except ValueError:
+            messagebox.showerror("Error", "Ingrese valores numéricos para a, b, c y número de trazas.")
+
+# Verificar si el script se está ejecutando como un programa independiente
+if __name__ == "__main__":
+    root = tk.Tk()
+
+    # Obtener dimensiones de la pantalla
+    ancho_pantalla = root.winfo_screenwidth()
+    alto_pantalla = root.winfo_screenheight()
+
+    # Calcular las coordenadas para centrar la ventana
+    x_pos = (ancho_pantalla - root.winfo_reqwidth()) // 2
+    y_pos = (alto_pantalla - root.winfo_reqheight()) // 2
+
+    # Establecer las coordenadas de la ventana
+    root.geometry(f"+{x_pos-80}+{y_pos-100}")
+    app = EllipsoidApp(root)
+    root.mainloop()
